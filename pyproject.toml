@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "template-cli"
-version = "1.0.3"
-description = "Generic template for a CLI application using Click"
+name = "process-icon2i-hub"
+version = "1.0.18"
+description = "Scripts to get data from DPC API"
 readme = ""
 authors = [
-  { name="Valerio Luzzi", email="valerio.luzzi@gecosistema.com" }
+  { name="Tommaso Redaelli", email="tommaso.redaelli@gecosistema.com" }
 ]
 license = { text = "MIT" }
 keywords = []
@@ -17,25 +17,37 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent"
 ]
-
 dependencies = [
   "requests",
+  "filelock",
   "click",
-  "boto3"
+  "boto3",
+  "pygrib",
+  "xarray",
+  "rioxarray",
+  "netcdf4",
+  "geopandas"
 ]
 
 [project.optional-dependencies]
+py311gdal = [
+  "gdal @ https://github.com/cgohlke/geospatial-wheels/releases/download/v2025.1.20/GDAL-3.10.1-cp311-cp311-win_amd64.whl",
+]
 pygeoapi = [
+  "numpy",
+  "numba",
+  "gdal2numpy",
   "pygeoapi",
 ]
 
 [project.urls]
-Homepage = "https://github.com/saferplaces/template-cli"
+Homepage = "https://github.com/SaferPlaces2023/process-icon2i-hub"
 
 [project.scripts]
-template-cli = "template_cli.main:main_click"
-template_cli = "template_cli.main:main_click"
+icon2i-retriever = "process_icon2i_hub.main:main_click"
 
 [tool.setuptools]
-packages = ["template_cli", "template_pygeoapi"]
 package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
