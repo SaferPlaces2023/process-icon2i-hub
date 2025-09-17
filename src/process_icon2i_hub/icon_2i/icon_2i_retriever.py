@@ -40,7 +40,7 @@ class _ICON2IRetriever():
 
         print(f"Validating arguments: {kwargs}")
 
-        variable_code = kwargs.get('variable_code', None)
+        variable = kwargs.get('variable', None)
         lat_range = kwargs.get('lat_range', None)
         long_range = kwargs.get('long_range', None)
         time_range = kwargs.get('time_range', None)
@@ -51,12 +51,12 @@ class _ICON2IRetriever():
         bucket_destination = kwargs.get('bucket_destination', None)
         out = kwargs.get('out', None)
 
-        if variable_code is None:
-            raise StatusException(StatusException.INVALID, 'variable_code is required')
-        if type(variable_code) is not str:
-            raise StatusException(StatusException.INVALID, 'variable_code must be a string')
-        if variable_code not in _consts._VARIABLES_DICT:
-            raise StatusException(StatusException.INVALID, f'Invalid variable_code "{variable_code}". Must be one of {_consts._VARIABLES_DICT.keys()}')
+        if variable is None:
+            raise StatusException(StatusException.INVALID, 'variable is required')
+        if type(variable) is not str:
+            raise StatusException(StatusException.INVALID, 'variable must be a string')
+        if variable not in _consts._VARIABLES_DICT:
+            raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
 
         if lat_range is not None:
             if type(lat_range) is not list or len(lat_range) != 2:
@@ -136,7 +136,7 @@ class _ICON2IRetriever():
                 os.makedirs(dirname)
 
         return {
-            'variable_code': variable_code,
+            'variable': variable,
             'lat_range': lat_range,
             'long_range': long_range,
             'time_start': time_start,
@@ -148,12 +148,12 @@ class _ICON2IRetriever():
         }
     
 
-    def retrieve_icon2I_data(self, variable_code, lat_range, lon_range, time_start, time_end, bucket_source):
+    def retrieve_icon2I_data(self, variable, lat_range, lon_range, time_start, time_end, bucket_source):
         
         # DOC: Check if the dataset is available in the source bucket
-        def check_date_dataset_avaliability(variable_code, requested_dates, bucket_source):
-            requested_source_uris = [f'{bucket_source}/{_consts._DATASET_NAME}__{variable_code}__{d}.nc' for d in requested_dates]
-            bucket_source_filekeys = module_s3.s3_list(bucket_source, filename_prefix=f'{_consts._DATASET_NAME}__{variable_code}__')
+        def check_date_dataset_avaliability(variable, requested_dates, bucket_source):
+            requested_source_uris = [f'{bucket_source}/{_consts._DATASET_NAME}__{variable}__{d}.nc' for d in requested_dates]
+            bucket_source_filekeys = module_s3.s3_list(bucket_source, filename_prefix=f'{_consts._DATASET_NAME}__{variable}__')
             bucket_source_uris = [f'{bucket_source}/{filesystem.justfname(f)}' for f in bucket_source_filekeys]
             avaliable_uris = [ru for ru in requested_source_uris if ru in bucket_source_uris]
             if len(avaliable_uris) != len(requested_dates):
@@ -161,20 +161,20 @@ class _ICON2IRetriever():
             return avaliable_uris
         
         requested_dates = pd.date_range(time_start, time_end, freq='1d').to_series().apply(lambda d: d.date()).to_list()
-        data_source_uris = check_date_dataset_avaliability(variable_code, time_start, time_end, bucket_source) if bucket_source is not None else None
+        data_source_uris = check_date_dataset_avaliability(variable, time_start, time_end, bucket_source) if bucket_source is not None else None
 
         # DOC: If the dataset is not available in the source bucket, run the ingestor to retrieve it
         if data_source_uris is None:
             icon2i_ingestor = _ICON2IIngestor()
             icon2i_ingestor_out = icon2i_ingestor.run(
-                variable_code = variable_code,
+                variable = variable,
                 forecast_run = list(map(lambda d: d.isoformat(), requested_dates)),
                 out_dir = self._tmp_data_folder,
                 bucket_destination = bucket_source
             )
             if icon2i_ingestor_out['status'] != 'OK':
                 raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {icon2i_ingestor_out["message"]}')    
-            data_source_uris = check_date_dataset_avaliability(variable_code, time_start, time_end, bucket_source) if bucket_source is not None else None
+            data_source_uris = check_date_dataset_avaliability(variable, time_start, time_end, bucket_source) if bucket_source is not None else None
 
         # DOC: Now we have the data source URIs, we can retrieve the data
         retrived_files = []
@@ -215,11 +215,11 @@ class _ICON2IRetriever():
         return dataset
     
 
-    def create_timestamp_raster(self, variable_code, dataset, out):
+    def create_timestamp_raster(self, variable, dataset, out):
         timestamps = [datetime.datetime.fromisoformat(str(ts).replace('.000000000','')) for ts in dataset.time.values]
         
         if out is None:
-            multiband_raster_filename = f'{_consts._DATASET_NAME}/{variable_code}/{_consts._DATASET_NAME}__{variable_code}__{timestamps[-1]}.tif'
+            multiband_raster_filename = f'{_consts._DATASET_NAME}/{variable}/{_consts._DATASET_NAME}__{variable}__{timestamps[-1]}.tif'
             multiband_raster_filepath = os.path.join(self._tmp_data_folder, multiband_raster_filename)
         else:
             multiband_raster_filepath = out
@@ -230,7 +230,7 @@ class _ICON2IRetriever():
         pixel_size_x = (xmax - xmin) / nx
         pixel_size_y = (ymax - ymin) / ny
 
-        data = dataset.sortby('lat', ascending=False)[variable_code].values
+        data = dataset.sortby('lat', ascending=False)[variable].values
         geotransform = (xmin, pixel_size_x, 0, ymax, 0, -pixel_size_y)
         projection = dataset.attrs.get('crs', 'EPSG:4326')
         
@@ -253,9 +253,9 @@ class _ICON2IRetriever():
     
     def run(
         self,
-        variable_code: str,
+        variable: str,
         lat_range: tuple | list | None = None,
-        lon_range: tuple | list | None = None,
+        long_range: tuple | list | None = None,
         time_range: tuple | list | None = None,
         out_format: str | None = None,
         bucket_source: str | None = None,
@@ -267,7 +267,7 @@ class _ICON2IRetriever():
         """
         Run the retrieval process for ICON2I data.
         
-        :param variable_code: The code of the variable to retrieve.
+        :param variable: The code of the variable to retrieve.
         :param lat_range: Latitude range as a tuple (min_lat, max_lat).
         :param lon_range: Longitude range as a tuple (min_lon, max_lon).
         :param time_range: Time range as a tuple (start_time, end_time).
@@ -281,18 +281,18 @@ class _ICON2IRetriever():
         try:
             # DOC: Validate the arguments
             validated_args = self.argument_validation(
-                variable_code=variable_code,
+                variable=variable,
                 lat_range=lat_range,
-                long_range=lon_range,
+                long_range=long_range,
                 time_range=time_range,
                 out_format=out_format,
                 bucket_source=bucket_source,
                 bucket_destination=bucket_destination,
                 out=out
             )
-            variable_code = validated_args['variable_code']
+            variable = validated_args['variable']
             lat_range = validated_args['lat_range']
-            lon_range = validated_args['long_range']
+            long_range = validated_args['long_range']
             time_start = validated_args['time_start']
             time_end = validated_args['time_end']
             out_format = validated_args['out_format']
@@ -302,7 +302,7 @@ class _ICON2IRetriever():
 
             # DOC: Retrieve the ICON2I data
             dataset = self.retrieve_icon2I_data(
-                variable_code=variable_code,
+                variable=variable,
                 time_start=time_start,
                 time_end=time_end,
                 bucket_source=bucket_source,
@@ -311,7 +311,7 @@ class _ICON2IRetriever():
 
             # DOC: Create timestamp raster
             timestamp_raster = self.create_timestamp_raster(
-                variable_code = variable_code,
+                variable = variable,
                 dataset = dataset,
                 out = out
             )

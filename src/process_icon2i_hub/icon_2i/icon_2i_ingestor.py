@@ -65,17 +65,17 @@ class _ICON2IIngestor():
 
         print(f"Validating arguments: {kwargs}")
 
-        variable_code = kwargs.get('variable_code', None)
+        variable = kwargs.get('variable', None)
         forecast_run = kwargs.get('forecast_run', None)
         bucket_destination = kwargs.get('bucket_destination', None)
         out_dir = kwargs.get('out_dir', None)
 
-        if variable_code is None:
-            raise StatusException(StatusException.INVALID, 'variable_code is required')
-        if type(variable_code) is not str:
-            raise StatusException(StatusException.INVALID, 'variable_code must be a string')
-        if variable_code not in _consts._VARIABLES_DICT:
-            raise StatusException(StatusException.INVALID, f'Invalid variable_code "{variable_code}". Must be one of {_consts._VARIABLES_DICT.keys()}')
+        if variable is None:
+            raise StatusException(StatusException.INVALID, 'variable is required')
+        if type(variable) is not str:
+            raise StatusException(StatusException.INVALID, 'variable must be a string')
+        if variable not in _consts._VARIABLES_DICT:
+            raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
         
         if forecast_run is not None:
             if type(forecast_run) not in [str, list]:
@@ -109,7 +109,7 @@ class _ICON2IIngestor():
             out_dir = self._tmp_data_folder
 
         return {
-            'variable_code': variable_code,
+            'variable': variable,
             'requested_forecast_run': forecast_run,
             'bucket_destination': bucket_destination,
             'out': out_dir
@@ -132,8 +132,8 @@ class _ICON2IIngestor():
         return icon2I_file_paths
 
 
-    def icon_2I_time_concat(self, grib_dss, variable_code):
-        varaible_name = _consts._VARIABLES_DICT[variable_code]
+    def icon_2I_time_concat(self, grib_dss, variable):
+        varaible_name = _consts._VARIABLES_DICT[variable]
 
         dss = []
         for ids, grib_ds in enumerate(grib_dss):
@@ -162,7 +162,7 @@ class _ICON2IIngestor():
             np_dataset = np.concatenate(([np_dataset[0]], np.diff(np_dataset, axis=0)), axis=0) # DOC: og data is cumulative
             ds = xr.Dataset(
                 {
-                    variable_code: (["time", "lat", "lon"], np_dataset.astype(np.float32))
+                    variable: (["time", "lat", "lon"], np_dataset.astype(np.float32))
                 },
                 coords={
                     "time": times_range,
@@ -181,13 +181,13 @@ class _ICON2IIngestor():
         ds[varaible_name] = xr.where(ds[varaible_name] < 0, 0, ds[varaible_name])
         return ds
 
-    def save_date_datasets(self, date_datasets, variable_code, out_dir, bucket_destination):
+    def save_date_datasets(self, date_datasets, variable, out_dir, bucket_destination):
         """
         Save the date datasets to the specified output directory and upload to S3 if bucket_destination is provided.
         """
         date_dataset_refs = []
         for dt, ds in date_datasets:
-            fn = f'{_consts._DATASET_NAME}__{variable_code}__{dt}.nc'
+            fn = f'{_consts._DATASET_NAME}__{variable}__{dt}.nc'
             fp = os.path.join(out_dir, fn)
             ds.to_netcdf(fp)
             if bucket_destination:
@@ -212,7 +212,7 @@ class _ICON2IIngestor():
 
     def run(
         self,
-        variable_code: str = None,
+        variable: str = None,
         forecast_run: str | None = None,
         out_dir: str = None,
         bucket_destination: str = None
@@ -229,12 +229,12 @@ class _ICON2IIngestor():
 
             # DOC: Validate the arguments
             validated_args = self.argument_validation(
-                variable_code=variable_code,
+                variable=variable,
                 forecast_run=forecast_run,
                 out=out_dir,
                 bucket_destination=bucket_destination
             )
-            variable_code = validated_args['variable_code']
+            variable = validated_args['variable']
             forecast_run = validated_args['requested_forecast_run']
             bucket_destination = validated_args['bucket_destination']
             out_dir = validated_args['out']
@@ -246,13 +246,13 @@ class _ICON2IIngestor():
             gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
 
             # DOC: Concatenate the gribs into a single xarray dataset
-            timeserie_dataset = self.icon_2I_time_concat(gribs, variable_code)
+            timeserie_dataset = self.icon_2I_time_concat(gribs, variable)
 
             # DOC: Split the dataset into individual date datasets
             date_datasets = self.get_single_date_dataset(timeserie_dataset)
 
             # DOC: Save the date datasets to the output directory and upload to S3 if specified
-            date_datasets_refs = self.save_date_datasets(date_datasets,variable_code,  out_dir, bucket_destination)
+            date_datasets_refs = self.save_date_datasets(date_datasets,variable,  out_dir, bucket_destination)
 
             # DOC: Prepare the output
             outputs = {
