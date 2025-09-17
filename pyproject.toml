@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "process-icon2i-hub"
-version = "1.0.20"
+version = "1.0.30"
 description = "Scripts to get data from DPC API"
 readme = ""
 authors = [
@@ -45,7 +45,8 @@ pygeoapi = [
 Homepage = "https://github.com/SaferPlaces2023/process-icon2i-hub"
 
 [project.scripts]
-icon2i-retriever = "process_icon2i_hub.main:main_click"
+icon2i-ingestor = "process_icon2i_hub.main:cli_run_icon2i_ingestor"
+icon2i-retriever = "process_icon2i_hub.main:cli_run_icon2i_retriever"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
