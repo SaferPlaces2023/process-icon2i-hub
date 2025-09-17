@@ -1,0 +1,26 @@
+_DATASET_NAME = 'ICON_2I_SURFACE_PRESSURE_LEVELS'
+
+_BASE_URL = 'https://meteohub.mistralportal.it/api'
+_AVALIABLE_DATA_URL = f'{_BASE_URL}/datasets/{_DATASET_NAME}/opendata'
+_RETRIEVE_DATA_URL = lambda data_filename: f'{_RETRIEVE_DATA_URL}/opendata/{data_filename}'
+
+
+class _VARIABLES:
+    """
+    Class to hold the constants for the ICON2I variables.
+    """
+    TEMPERATURE = '2 metre temperature'
+    DEWPOINT_TEMPERATURE = '2 metre dewpoint temperature'
+    U_WIND_COMPONENT = '10 metre U wind component'
+    V_WIND_COMPONENT = '10 metre V wind component'
+    TOTAL_CLOUD_COVER = 'Total Cloud Cover'
+    TEMPERATURE_G = 'Temperature (G)'
+    SNOW_DEPTH_WATER_EQUIVALENT = 'Snow depth water equivalent'
+    PRESSURE_REDUCED_TO_MSL = 'Pressure Reduced to MSL'
+    TOTAL_PRECIPITATION = 'Total Precipitation'
+
+
+_VARIABLES_LIST = [attr for attr in dir(_VARIABLES) if not attr.startswith('_') and not callable]
+
+_VARIABLE_CODE = lambda variable: variable.replace(' ', '_').lower()
+_VARIABLES_DICT = { _VARIABLE_CODE(variable): variable for variable in _VARIABLES_LIST }

@@ -30,6 +30,7 @@ import fnmatch
 import boto3
 import requests
 import logging
+from urllib.parse import urlparse
 from requests.exceptions import RequestException
 from botocore.exceptions import ClientError, NoCredentialsError
 from .filesystem import justext, justpath, justfname, forceext
@@ -329,31 +330,47 @@ def s3_move(src, dst, client=None):
     return res
 
 
-def s3_list(uri, etag=False, client=None):
+def s3_list(s3_uri, filename_prefix="", client=None, retrieve_properties=[]):
     """
-    s3_list
-    regexp: s3://saferplaces.co/tests/rimini
+    Elenca tutti i file in un bucket S3 dato il suo URI, filtrando per un prefisso specifico.
+
+    :param s3_uri: URI S3 del bucket (es. "s3://mio-bucket")
+    :param filename_prefix: Prefisso dei file da cercare (es. "dataset-name__variable-name")
+    :return: Lista completa di filename presenti nel bucket con il prefisso specificato.
     """
-    res = []
-    try:
-        uri = f"{uri}/*" if not "*" in uri else uri
-        bucket_name, pattern = get_bucket_name_key(uri)
-        key_name, _ = pattern.split("/*", 1)
-        Logger.debug(bucket_name, key_name)
-        if bucket_name and key_name:
-            client = get_client(client)
-            response = client.list_objects_v2(Bucket=bucket_name, Prefix=key_name)
-            for obj in response['Contents']:
-                if fnmatch.fnmatch(obj['Key'], pattern):
-                    item = f"s3://{bucket_name}/{obj['Key']}"
-                    checksum = obj['ETag'].strip('"') if etag else None
-                    if etag:
-                        res.append((item, checksum))
-                    else:
-                        res.append(item)
-    except ClientError as ex:
-        Logger.error(ex)
-    return res
+    parsed_uri = urlparse(s3_uri)
+    bucket_name = parsed_uri.netloc
+    prefix = os.path.join(
+        s3_uri[s3_uri.index(urlparse(s3_uri).netloc) + len(urlparse(s3_uri).netloc) + 1 : ],
+        filename_prefix
+    ).replace('\\', '/')
+
+    client = get_client(client)
+    paginator = client.get_paginator("list_objects_v2")
+
+    file_list = []
+    
+    if len(retrieve_properties) > 0:
+        avaliable_properties = [
+            'Key',               # Full path of the object in the bucket.
+            'LastModified',      # Date and time of the last modification (type datetime).
+            'ETag',              # Hash MD5 of the object content (useful for integrity checks).
+            'Size',              # Size of the file in bytes.
+            'StorageClass',      # Storage class (e.g., STANDARD, GLACIER, etc.).
+            'Owner',             # Owner of the object (if RequestPayer is set to requester).
+        ]
+        retrieve_properties = [prop for prop in retrieve_properties if prop in avaliable_properties]
+        for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+            if "Contents" in page:
+                for obj in page["Contents"]:
+                    file_info = {'Key': obj['Key']} | {prop: obj.get(prop) for prop in retrieve_properties}
+                    file_list.append(file_info)
+    else:
+        for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+            if "Contents" in page:
+                file_list.extend([obj["Key"] for obj in page["Contents"]])
+    
+    return file_list
 
 
 
