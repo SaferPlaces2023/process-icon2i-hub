@@ -43,7 +43,6 @@ from ..cli.module_log import Logger, set_log_debug
 from ..utils import filesystem, module_s3
 from ..utils.status_exception import StatusException
 
-from . import _ARPAV_RETRIEVERS
 from .icon_2i_ingestor import _ICON2IIngestor
 
 # -----------------------------------------------------------------------------
@@ -176,7 +175,7 @@ class ICON2IIngestorProcessor(BaseProcessor):
         if debug:
             set_log_debug()
 
-        self._tmp_data_folder = _ARPAV_RETRIEVERS[self.variable]._tmp_data_folder
+        self._tmp_data_folder = _ICON2IIngestor._tmp_data_folder
         if not os.path.exists(self._tmp_data_folder):
             os.makedirs(self._tmp_data_folder)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "process-icon2i-hub"
-version = "1.0.30"
+version = "1.0.31"
 description = "Scripts to get data from DPC API"
 readme = ""
 authors = [
