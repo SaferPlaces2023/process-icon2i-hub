@@ -168,20 +168,23 @@ class _ICON2IRetriever():
             icon2i_ingestor = _ICON2IIngestor()
             icon2i_ingestor_out = icon2i_ingestor.run(
                 variable = variable,
-                forecast_run = list(map(lambda d: d.isoformat(), requested_dates)),
+                forecast_run = [d.isoformat() for d in requested_dates],
                 out_dir = self._tmp_data_folder,
                 bucket_destination = bucket_source
             )
             if icon2i_ingestor_out.get('status', 'ERROR') != 'OK':
                 raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {icon2i_ingestor_out["message"]}')    
-            data_source_uris = check_date_dataset_avaliability(variable, time_start, time_end, bucket_source) if bucket_source is not None else None
+            data_source_uris = [cdi['ref'] for cdi in icon2i_ingestor_out['collected_data_info']]
 
         # DOC: Now we have the data source URIs, we can retrieve the data
         retrived_files = []
         for dsu in data_source_uris:
-            rf = os.path.join(self._tmp_data_folder, os.path.basename(dsu))
-            module_s3.s3_download(dsu, rf)
-            retrived_files.append(rf)
+            if dsu.startswith('s3://'):
+                rf = os.path.join(self._tmp_data_folder, os.path.basename(dsu))
+                module_s3.s3_download(dsu, rf)
+                retrived_files.append(rf)
+            else:
+                retrived_files.append(dsu)
             
         datasets = [xr.open_dataset(rf) for rf in retrived_files]
         dataset = xr.concat(datasets, dim='time')
