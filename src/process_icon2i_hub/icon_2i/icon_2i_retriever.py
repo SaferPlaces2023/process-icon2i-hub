@@ -305,8 +305,7 @@ class _ICON2IRetriever():
                 variable=variable,
                 time_start=time_start,
                 time_end=time_end,
-                bucket_source=bucket_source,
-                bucket_destination=bucket_destination
+                bucket_source=bucket_source
             )
 
             # DOC: Create timestamp raster

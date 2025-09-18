@@ -90,7 +90,7 @@ class _ICON2IIngestor():
                     forecast_run[irfr] = rfr
                 except Exception as err:
                     raise StatusException(StatusException.INVALID, f'Invalid forecast run "{rfr}. Must be a valid ISO format date string')
-            forecast_datetime_runs = [fdr for fdr in forecast_datetime_runs if self.ping_avaliable_runs([fdr])]
+            forecast_run = [fr for fr in forecast_run if self.ping_avaliable_runs([fr])]
         else:
             avaliable_data = self.get_avaliable_forecast_runs()
             forecast_run = avaliable_data.forecast_run.tolist()
