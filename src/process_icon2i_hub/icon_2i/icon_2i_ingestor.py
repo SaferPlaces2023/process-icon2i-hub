@@ -43,7 +43,7 @@ class _ICON2IIngestor():
             avaliable_data['forecast_run'] = avaliable_data.apply(lambda row: datetime.datetime.fromisoformat(f'{row.date}T{row.run}'), axis=1)
             return avaliable_data
 
-        avaliable_data_response = requests.get(self.avaliable_data_url)
+        avaliable_data_response = requests.get(_consts._AVALIABLE_DATA_URL)
         if avaliable_data_response.status_code == 200:
             avaliable_data = parse_avaliable_data(avaliable_data_response)
         else:
@@ -116,13 +116,19 @@ class _ICON2IIngestor():
         }
     
 
+    def get_icon2I_data_filenames(self, forecast_datetime_runs):
+        avaliable_data = self.get_avaliable_forecast_runs()
+        forecast_runs_filenames = avaliable_data[avaliable_data.forecast_run.isin(forecast_datetime_runs)].filename.to_list()
+        return forecast_runs_filenames
+    
+
     def download_icon2I_data(self, forecast_datetime_runs):
         request_file_names = self.get_icon2I_data_filenames(forecast_datetime_runs)
         icon2I_file_paths = []
         for rf in request_file_names:
-            response = requests.get(self.retrieve_data_url(rf), stream=True)
+            response = requests.get(_consts._RETRIEVE_DATA_URL(rf), stream=True)
             if response.status_code == 200:
-                rf_filename = os.path.join(self._data_folder, rf)
+                rf_filename = os.path.join(self._tmp_data_folder, rf)
                 with open(rf_filename, "wb") as grib_file:
                     for chunk in response.iter_content(chunk_size=8192):
                         grib_file.write(chunk)
