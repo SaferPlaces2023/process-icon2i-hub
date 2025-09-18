@@ -23,4 +23,4 @@ class _VARIABLES:
 _VARIABLES_LIST = [attr for attr in dir(_VARIABLES) if not attr.startswith('_')]
 
 _VARIABLE_CODE = lambda variable: variable.replace(' ', '_').lower()
-_VARIABLES_DICT = { _VARIABLE_CODE(variable): variable for variable in _VARIABLES_LIST }
+_VARIABLES_DICT =  { _VARIABLE_CODE(variable): _VARIABLES.__dict__[variable] for variable in _VARIABLES_LIST }
