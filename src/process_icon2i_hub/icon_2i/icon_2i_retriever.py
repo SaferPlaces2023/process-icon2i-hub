@@ -161,7 +161,7 @@ class _ICON2IRetriever():
             return avaliable_uris
         
         requested_dates = pd.date_range(time_start, time_end, freq='1d').to_series().apply(lambda d: d.date()).to_list()
-        data_source_uris = check_date_dataset_avaliability(variable, time_start, time_end, bucket_source) if bucket_source is not None else None
+        data_source_uris = check_date_dataset_avaliability(variable, requested_dates, bucket_source) if bucket_source is not None else None
 
         # DOC: If the dataset is not available in the source bucket, run the ingestor to retrieve it
         if data_source_uris is None:
