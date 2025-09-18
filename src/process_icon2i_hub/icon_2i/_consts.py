@@ -20,7 +20,7 @@ class _VARIABLES:
     TOTAL_PRECIPITATION = 'Total Precipitation'
 
 
-_VARIABLES_LIST = [attr for attr in dir(_VARIABLES) if not attr.startswith('_') and not callable]
+_VARIABLES_LIST = [attr for attr in dir(_VARIABLES) if not attr.startswith('_')]
 
 _VARIABLE_CODE = lambda variable: variable.replace(' ', '_').lower()
 _VARIABLES_DICT = { _VARIABLE_CODE(variable): variable for variable in _VARIABLES_LIST }

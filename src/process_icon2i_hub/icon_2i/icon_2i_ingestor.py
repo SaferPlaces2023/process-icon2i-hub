@@ -215,7 +215,8 @@ class _ICON2IIngestor():
         variable: str = None,
         forecast_run: str | None = None,
         out_dir: str = None,
-        bucket_destination: str = None
+        bucket_destination: str = None,
+        **kwargs
     ):
         """
         Run the ingestor to retrieve and process data.
