@@ -129,8 +129,8 @@ class _ICON2IRetriever():
         if out is not None:
             if type(out) is not str:
                 raise StatusException(StatusException.INVALID, 'out must be a string')
-            if not out.endswith('.geojson'):
-                raise StatusException(StatusException.INVALID, 'out must end with ".geojson"')
+            if not out.endswith('.tif'):
+                raise StatusException(StatusException.INVALID, 'out must end with ".tif"')
             dirname, _ = os.path.split(out)
             if dirname != '' and not os.path.exists(dirname):
                 os.makedirs(dirname)
@@ -168,7 +168,7 @@ class _ICON2IRetriever():
             icon2i_ingestor = _ICON2IIngestor()
             icon2i_ingestor_out = icon2i_ingestor.run(
                 variable = variable,
-                forecast_run = [d.isoformat() for d in requested_dates],
+                forecast_run = list(map(lambda d: d.isoformat(), requested_dates)),
                 out_dir = self._tmp_data_folder,
                 bucket_destination = bucket_source
             )
@@ -323,7 +323,7 @@ class _ICON2IRetriever():
             # DOC: Store data in bucket if bucket_destination is provided
             if bucket_destination is not None:
                 bucket_uris = []
-                bucket_uri = f"bucket_destination/{filesystem.justfname(timestamp_raster)}"
+                bucket_uri = f"{bucket_destination}/{filesystem.justfname(timestamp_raster)}"
                 upload_status = module_s3.s3_upload(timestamp_raster, bucket_uri)
                 if not upload_status:
                     raise StatusException(StatusException.ERROR, f"Failed to upload data to bucket {bucket_destination}")

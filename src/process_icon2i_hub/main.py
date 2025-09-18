@@ -267,7 +267,7 @@ class _ARG_NAMES_ICON2I_RETRIEVER():
 )
 @click.option(
     *_ARG_NAMES_ICON2I_RETRIEVER.OUT_FORMAT['aliases'],
-    type=click.Choice(['geojson'], case_sensitive=False), default=_ARG_NAMES_ICON2I_RETRIEVER.OUT_FORMAT['default'], 
+    type=click.Choice(['tif'], case_sensitive=False), default=_ARG_NAMES_ICON2I_RETRIEVER.OUT_FORMAT['default'], 
     help=_ARG_NAMES_ICON2I_RETRIEVER.OUT_FORMAT['help'],
 )
 @click.option(
