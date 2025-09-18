@@ -303,6 +303,8 @@ class _ICON2IRetriever():
             # DOC: Retrieve the ICON2I data
             dataset = self.retrieve_icon2I_data(
                 variable=variable,
+                lat_range=lat_range,
+                lon_range=long_range,
                 time_start=time_start,
                 time_end=time_end,
                 bucket_source=bucket_source
