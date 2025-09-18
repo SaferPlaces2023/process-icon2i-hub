@@ -222,7 +222,7 @@ class _ICON2IRetriever():
         timestamps = [datetime.datetime.fromisoformat(str(ts).replace('.000000000','')) for ts in dataset.time.values]
         
         if out is None:
-            multiband_raster_filename = f'{_consts._DATASET_NAME}/{variable}/{_consts._DATASET_NAME}__{variable}__{timestamps[-1]}.tif'
+            multiband_raster_filename = f'{_consts._DATASET_NAME}/{variable}/{_consts._DATASET_NAME}__{variable}__{timestamps[0]}.tif'
             multiband_raster_filepath = os.path.join(self._tmp_data_folder, multiband_raster_filename)
         else:
             multiband_raster_filepath = out
