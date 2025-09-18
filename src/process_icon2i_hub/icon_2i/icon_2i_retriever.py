@@ -213,7 +213,7 @@ class _ICON2IRetriever():
                 query_dataset = query_dataset.sel(time=time_range, method="nearest")
 
             return query_dataset
-        dataset = dataset_query(dataset, lat_range, lon_range, time_start)       
+        dataset = dataset_query(dataset, lat_range, lon_range, [time_start, time_end])       
         
         return dataset
     

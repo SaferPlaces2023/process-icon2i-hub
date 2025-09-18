@@ -80,7 +80,7 @@ class _ICON2IIngestor():
         if forecast_run is not None:
             if type(forecast_run) not in [str, list]:
                 raise StatusException(StatusException.INVALID, 'Invalid input format for forecast_run parameter')
-            if type(forecast_run) == str:
+            if type(forecast_run) is str:
                 forecast_run = [forecast_run]
             for irfr, rfr in enumerate(forecast_run):
                 try:
