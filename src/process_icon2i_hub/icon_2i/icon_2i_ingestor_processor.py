@@ -146,7 +146,7 @@ class ICON2IIngestorProcessor(BaseProcessor):
     """
     ICON-2I Ingestor Processor.
     """
-
+    name = 'ICON2IIngestorProcessor'
     _tmp_data_folder = os.path.join(os.getcwd(), 'ICON2IIngestorProcessor')
 
     def __init__(self, processor_def):

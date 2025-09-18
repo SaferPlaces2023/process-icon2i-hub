@@ -160,6 +160,7 @@ class ICON2IRetrieverProcessor(BaseProcessor):
     ICON-2I Retriever Processor.
     """
 
+    name = 'ICON2IRetrieverProcessor'
     _tmp_data_folder = os.path.join(os.getcwd(), 'ICON2IRetrieverProcessor')
 
     def __init__(self, processor_def):
