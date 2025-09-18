@@ -184,7 +184,7 @@ class _ICON2IIngestor():
             lon=np.round(ds.lon.values, 6).astype(np.float32),
         )
         ds = ds.sortby(['time', 'lat', 'lon'])
-        ds[varaible_name] = xr.where(ds[varaible_name] < 0, 0, ds[varaible_name])
+        ds[variable] = xr.where(ds[variable] < 0, 0, ds[variable])
         return ds
 
     def save_date_datasets(self, date_datasets, variable, out_dir, bucket_destination):
