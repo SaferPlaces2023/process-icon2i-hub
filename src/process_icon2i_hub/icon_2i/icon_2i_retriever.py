@@ -172,7 +172,7 @@ class _ICON2IRetriever():
                 out_dir = self._tmp_data_folder,
                 bucket_destination = bucket_source
             )
-            if icon2i_ingestor_out['status'] != 'OK':
+            if icon2i_ingestor_out.get('status', 'ERROR') != 'OK':
                 raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {icon2i_ingestor_out["message"]}')    
             data_source_uris = check_date_dataset_avaliability(variable, time_start, time_end, bucket_source) if bucket_source is not None else None
 
@@ -345,7 +345,7 @@ class _ICON2IRetriever():
             return outputs
 
         except Exception as e:
-            raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {str(e)}')
+            raise StatusException(StatusException.ERROR, f'Error during ICON2I retriever run: {str(e)}')
         
         finally:
             filesystem.garbage_folders(self._tmp_data_folder)

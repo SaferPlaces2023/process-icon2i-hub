@@ -2,7 +2,7 @@ _DATASET_NAME = 'ICON_2I_SURFACE_PRESSURE_LEVELS'
 
 _BASE_URL = 'https://meteohub.mistralportal.it/api'
 _AVALIABLE_DATA_URL = f'{_BASE_URL}/datasets/{_DATASET_NAME}/opendata'
-_RETRIEVE_DATA_URL = lambda data_filename: f'{_RETRIEVE_DATA_URL}/opendata/{data_filename}'
+_RETRIEVE_DATA_URL = lambda data_filename: f'{_BASE_URL}/opendata/{data_filename}'
 
 
 class _VARIABLES:
