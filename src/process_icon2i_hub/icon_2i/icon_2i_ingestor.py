@@ -26,7 +26,7 @@ class _ICON2IIngestor():
 
     name = f'{_consts._DATASET_NAME}__Ingestor'
 
-    # REF: https://meteohub.mistralportal.it/api/datasets/ICON_2I_SURFACE_PRESSURE_LEVELS/opendata
+    # REF: https://meteohub.agenziaitaliameteo.it/api/datasets/ICON_2I_SURFACE_PRESSURE_LEVELS/opendata
     
     _tmp_data_folder = os.path.join(os.getcwd(), name)
 
