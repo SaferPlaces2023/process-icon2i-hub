@@ -203,9 +203,9 @@ class _ICON2IIngestor():
             if bucket_destination:
                 uri = os.path.join(bucket_destination, fn)
                 module_s3.s3_upload(fp, uri)
-                date_dataset_refs.append((dt, uri))
+                date_dataset_refs.append((variable, dt, uri))
             else:
-                date_dataset_refs.append((dt, fp))
+                date_dataset_refs.append((variable, dt, fp))
         return date_dataset_refs
 
 
@@ -257,7 +257,7 @@ class _ICON2IIngestor():
             gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
 
             # DOC: Extract each variable from the gribs
-            vars_date_datasets_refs = []
+            variables_date_datasets_refs = []
             for var in variable:
 
                 # DOC: Concatenate the gribs into a single xarray dataset
@@ -267,8 +267,10 @@ class _ICON2IIngestor():
                 date_datasets = self.get_single_date_dataset(timeserie_dataset)
 
                 # DOC: Save the date datasets to the output directory and upload to S3 if specified
-                date_datasets_refs = self.save_date_datasets(date_datasets, var, out_dir, bucket_destination)
-                vars_date_datasets_refs.append((var, *date_datasets_refs))
+                variable_date_datasets_refs = self.save_date_datasets(date_datasets, var, out_dir, bucket_destination)
+
+                # DOC: Collect all variables+date datasets references
+                variables_date_datasets_refs.extend(variable_date_datasets_refs)
 
             # DOC: Prepare the output
             outputs = {
@@ -279,7 +281,7 @@ class _ICON2IIngestor():
                         'date': dt.isoformat(), 
                         'ref': ref
                     }
-                    for var,dt,ref in date_datasets_refs
+                    for var,dt,ref in variables_date_datasets_refs
                 ]
             }
 
