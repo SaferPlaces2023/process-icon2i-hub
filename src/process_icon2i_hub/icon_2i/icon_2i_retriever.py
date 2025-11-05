@@ -260,7 +260,7 @@ class _ICON2IRetriever():
             format="COG",
             save_nodata_as=-9999.0,
             metadata={
-                'band_names': [ts.isoformat() for ts in timestamps],
+                'band_names': timestamps,
                 'type': '', # product.measure_type,  # !!!: To be defined
                 'unit': '' # product.measure_unit   # !!!: To be defined
             }
