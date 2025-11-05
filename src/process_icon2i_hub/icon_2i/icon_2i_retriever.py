@@ -234,7 +234,7 @@ class _ICON2IRetriever():
     
 
     def create_timestamp_raster(self, variable, dataset, out):
-        timestamps = [datetime.datetime.fromisoformat(str(ts).replace('.000000000','')) for ts in dataset.time.values]
+        timestamps = [datetime.datetime.fromisoformat(str(ts).replace('.000000000','')).isoformat(timespec='seconds') for ts in dataset.time.values]
         
         if out is None:
             multiband_raster_filename = f'{_consts._DATASET_NAME}/{variable}/{_consts._DATASET_NAME}__{variable}__{timestamps[0]}.tif'
