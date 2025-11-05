@@ -133,9 +133,25 @@ PROCESS_METADATA = {
     },
     'example': {
         "inputs": {
-            "token": "ABC123XYZ666",
             "debug": True,
-            "forecast_run": ["2025-02-26T00:00:00", "2025-02-26T12:00:00"]
+
+            "variable": "total_precipitation",
+
+            "lat_range": [
+            44,
+            44.5
+            ],
+            "long_range": [
+            12.2,
+            12.8
+            ],
+            
+            "time_range": [
+                "2025-09-18T00:00:00",
+                "2025-09-18T08:00:00"
+            ],
+
+            "bucket_destination": "s3://saferplaces.co/SaferCastAPI/test/ICON2I",
         }
     }
 }
