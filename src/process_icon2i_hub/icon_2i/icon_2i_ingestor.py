@@ -253,12 +253,11 @@ class _ICON2IIngestor():
             # DOC: Get the available forecast runs
             icon2I_file_paths = self.download_icon2I_data(forecast_run)
 
-            # DOC: Open gribs
-            gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
-
             # DOC: Extract each variable from the gribs
             variables_date_datasets_refs = []
             for var in variable:
+                # DOC: Open gribs
+                gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
 
                 # DOC: Concatenate the gribs into a single xarray dataset
                 timeserie_dataset = self.icon_2I_time_concat(gribs, var)
