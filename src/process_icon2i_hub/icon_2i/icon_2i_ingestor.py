@@ -169,8 +169,9 @@ class _ICON2IIngestor():
                     data = np.stack([np.where(d.data==9999.0, np.nan, d.data) for d in values])
                     grib_data.append(data)
 
+            # DOC: Stack data and apply data-cube processing if defined for the variable
             np_dataset = np.stack(grib_data)
-            np_dataset = np.concatenate(([np_dataset[0]], np.diff(np_dataset, axis=0)), axis=0) # DOC: og data is cumulative
+            np_dataset = _consts._DATA_CUBE_PROCESSING.get(_consts._VARIABLE_CODE(variable), lambda x: x)(np_dataset)
             ds = xr.Dataset(
                 {
                     variable: (["time", "lat", "lon"], np_dataset.astype(np.float32))
