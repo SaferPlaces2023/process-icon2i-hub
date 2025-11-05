@@ -71,7 +71,8 @@ class _ICON2IIngestor():
         out_dir = kwargs.get('out_dir', None)
 
         if variable is None:
-            raise StatusException(StatusException.INVALID, 'variable is required')
+            variable = list(_consts._VARIABLES_DICT.keys())
+            Logger.debug(f'No variable specified, collect all variables: {variable}')
         if not isinstance(variable, (str, list)):
             raise StatusException(StatusException.INVALID, 'variable must be a string or a list of strings')
         if isinstance(variable, str):
