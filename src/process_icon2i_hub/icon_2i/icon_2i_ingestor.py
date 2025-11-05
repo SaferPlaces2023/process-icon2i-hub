@@ -72,9 +72,13 @@ class _ICON2IIngestor():
 
         if variable is None:
             raise StatusException(StatusException.INVALID, 'variable is required')
-        if type(variable) is not str:
-            raise StatusException(StatusException.INVALID, 'variable must be a string')
-        if variable not in _consts._VARIABLES_DICT:
+        if not isinstance(variable, (str, list)):
+            raise StatusException(StatusException.INVALID, 'variable must be a string or a list of strings')
+        if isinstance(variable, str):
+            variable = [variable]
+        if not all(isinstance(v, str) for v in variable):
+            raise StatusException(StatusException.INVALID, 'All variables must be strings')
+        if not all(v in _consts._VARIABLES_DICT for v in variable):
             raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
         
         if forecast_run is not None:
@@ -252,24 +256,30 @@ class _ICON2IIngestor():
             # DOC: Open gribs
             gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
 
-            # DOC: Concatenate the gribs into a single xarray dataset
-            timeserie_dataset = self.icon_2I_time_concat(gribs, variable)
+            # DOC: Extract each variable from the gribs
+            vars_date_datasets_refs = []
+            for var in variable:
 
-            # DOC: Split the dataset into individual date datasets
-            date_datasets = self.get_single_date_dataset(timeserie_dataset)
+                # DOC: Concatenate the gribs into a single xarray dataset
+                timeserie_dataset = self.icon_2I_time_concat(gribs, var)
 
-            # DOC: Save the date datasets to the output directory and upload to S3 if specified
-            date_datasets_refs = self.save_date_datasets(date_datasets,variable,  out_dir, bucket_destination)
+                # DOC: Split the dataset into individual date datasets
+                date_datasets = self.get_single_date_dataset(timeserie_dataset)
+
+                # DOC: Save the date datasets to the output directory and upload to S3 if specified
+                date_datasets_refs = self.save_date_datasets(date_datasets, var, out_dir, bucket_destination)
+                vars_date_datasets_refs.append((var, *date_datasets_refs))
 
             # DOC: Prepare the output
             outputs = {
                 'status': 'OK',
                 'collected_data_info': [
                     {
+                        'variable': var,
                         'date': dt.isoformat(), 
                         'ref': ref
                     }
-                    for dt,ref in date_datasets_refs
+                    for var,dt,ref in date_datasets_refs
                 ]
             }
 
