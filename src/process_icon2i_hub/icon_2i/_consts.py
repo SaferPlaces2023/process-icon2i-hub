@@ -47,7 +47,7 @@ def compute_wind_speed(wind_u, wind_v):
     ds_wv = xr.open_dataset(wind_v)
     ds_wind_speed = xr.Dataset(
         data_vars=dict(
-            wind_speed = (["time", "lat", "lon"], np.sqrt(ds_wu.u_wind_component**2 + ds_wv.v_wind_component**2))
+            wind_speed = (["time", "lat", "lon"], np.sqrt(ds_wu.u_wind_component.data**2 + ds_wv.v_wind_component.data**2))
         ),
         coords = dict(
             time = ds_wu.time,
@@ -62,7 +62,7 @@ def compute_wind_direction(wind_u, wind_v):
     ds_wv = xr.open_dataset(wind_v)
     ds_wind_direction = xr.Dataset(
         data_vars=dict(
-            wind_direction = (["time", "lat", "lon"], np.arctan2(ds_wv.v_wind_component, ds_wu.u_wind_component) * (180 / np.pi))
+            wind_direction = (["time", "lat", "lon"], np.arctan2(ds_wv.v_wind_component.data, ds_wu.u_wind_component.data) * (180 / np.pi))
         ),
         coords = dict(
             time = ds_wu.time,
