@@ -29,7 +29,7 @@ _VARIABLE_CODE = lambda variable: variable.replace(' ', '_').lower()
 _VARIABLES_DICT =  { _VARIABLE_CODE(variable): _VARIABLES.__dict__[variable] for variable in _VARIABLES_LIST }
 
 _DATA_CUBE_PROCESSING = {
-    _VARIABLE_CODE(_VARIABLES.TOTAL_PRECIPITATION): lambda data_cube: np.concatenate(([data_cube[0]], np.diff(data_cube, axis=0)), axis=0)
+    _VARIABLE_CODE("TOTAL_PRECIPITATION"): lambda data_cube: np.concatenate(([data_cube[0]], np.diff(data_cube, axis=0)), axis=0)
 }
 
 class _DERIVED_VARIABLES:

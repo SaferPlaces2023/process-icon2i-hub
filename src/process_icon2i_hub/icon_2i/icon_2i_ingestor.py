@@ -286,7 +286,7 @@ class _ICON2IIngestor():
 
             # DOC: Compute each derived variable 
             derived_variables_date_datasets_refs = []
-            df_vars = pd.DataFrame(variables_date_datasets_refs).group_by(by='date')
+            df_vars = pd.DataFrame(variables_date_datasets_refs).groupby(by='date')
             for dvar in derived_variable:
                 derived_date_datasets = []
                 og_vars = _consts._DERIVED_VARIABLES_DICT[dvar]
