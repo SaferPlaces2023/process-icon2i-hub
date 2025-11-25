@@ -53,10 +53,10 @@ PROCESS_METADATA = {
     'version': '0.2.0',
     'id': 'safer-process',
     'title': {
-        'en': 'ICON-2I Precipitation Ingestor Process',
+        'en': 'ICON-2I Ingestor Process',
     },
     'description': {
-        'en': 'Collect Precipitations data from ICON-2I'
+        'en': 'Collect data from ICON-2I'
     },
     'jobControlOptions': ['sync-execute', 'async-execute'],
     'keywords': ['safer process'],

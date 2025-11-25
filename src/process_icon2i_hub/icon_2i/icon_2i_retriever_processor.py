@@ -52,10 +52,10 @@ PROCESS_METADATA = {
     'version': '0.2.0',
     'id': 'safer-process',
     'title': {
-        'en': 'ICON-2I Precipitation Retirever Process',
+        'en': 'ICON-2I Retirever Process',
     },
     'description': {
-        'en': 'Retrieve Precipitations data collected from ICON-2I'
+        'en': 'Retrieve data collected from ICON-2I'
     },
     'jobControlOptions': ['sync-execute', 'async-execute'],
     'keywords': ['safer process'],
