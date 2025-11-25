@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import traceback
 import datetime
 import urllib3
 import requests
@@ -79,8 +80,10 @@ class _ICON2IIngestor():
             variable = [variable]
         if not all(isinstance(v, str) for v in variable):
             raise StatusException(StatusException.INVALID, 'All variables must be strings')
-        if not all(v in _consts._VARIABLES_DICT for v in variable):
+        if not all(v in _consts._VARIABLES_DICT or v in _consts._DERIVED_VARIABLES_DICT for v in variable):
             raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
+        derived_variable = list(set([dv for dv in variable if dv in _consts._DERIVED_VARIABLES_DICT]))
+        variable = list(set([v for v in variable if v not in derived_variable] + [v for dv in derived_variable for v in _consts._DERIVED_VARIABLES_DICT[dv]]))
         
         if forecast_run is not None:
             if type(forecast_run) not in [str, list]:
@@ -115,6 +118,7 @@ class _ICON2IIngestor():
 
         return {
             'variable': variable,
+            'derived_variable': derived_variable,
             'requested_forecast_run': forecast_run,
             'bucket_destination': bucket_destination,
             'out': out_dir
@@ -202,12 +206,16 @@ class _ICON2IIngestor():
             fn = f'{_consts._DATASET_NAME}__{variable}__{dt}.nc'
             fp = os.path.join(out_dir, fn)
             ds.to_netcdf(fp)
+            date_dataset_ref = dict(
+                variable = variable,
+                date = dt,
+                ref = dict( filepath=fp )
+            )
             if bucket_destination:
                 uri = os.path.join(bucket_destination, fn)
-                module_s3.s3_upload(fp, uri)
-                date_dataset_refs.append((variable, dt, uri))
-            else:
-                date_dataset_refs.append((variable, dt, fp))
+                module_s3.s3_upload(fp, uri, remove_src=False)
+                date_dataset_ref['ref']['uri'] = uri
+            date_dataset_refs.append(date_dataset_ref)
         return date_dataset_refs
 
 
@@ -238,6 +246,8 @@ class _ICON2IIngestor():
         :param bucket_destination: S3 bucket destination for the output file.
         """
 
+        debug = kwargs.get('debug', False)
+
         try:
 
             # DOC: Validate the arguments
@@ -248,6 +258,7 @@ class _ICON2IIngestor():
                 bucket_destination=bucket_destination
             )
             variable = validated_args['variable']
+            derived_variable = validated_args['derived_variable']
             forecast_run = validated_args['requested_forecast_run']
             bucket_destination = validated_args['bucket_destination']
             out_dir = validated_args['out']
@@ -273,23 +284,44 @@ class _ICON2IIngestor():
                 # DOC: Collect all variables+date datasets references
                 variables_date_datasets_refs.extend(variable_date_datasets_refs)
 
+            # DOC: Compute each derived variable 
+            derived_variables_date_datasets_refs = []
+            df_vars = pd.DataFrame(variables_date_datasets_refs).groupby(by='date')
+            for dvar in derived_variable:
+                derived_date_datasets = []
+                og_vars = _consts._DERIVED_VARIABLES_DICT[dvar]
+                for dt,df_var in df_vars:
+                    df_var.set_index('variable', inplace=True)
+                    og_dss = [df_var.loc[ogv].ref['filepath'] for ogv in og_vars]
+                    dds = _consts._DERIVED_VARIABLES_COMPUTE[dvar](*og_dss)
+                    derived_date_datasets.append((dt, dds))
+                derived_variable_date_datasets_refs = self.save_date_datasets(derived_date_datasets, dvar, out_dir, bucket_destination)
+                derived_variables_date_datasets_refs.extend(derived_variable_date_datasets_refs)
+
             # DOC: Prepare the output
             outputs = {
                 'status': 'OK',
                 'collected_data_info': [
-                    {
-                        'variable': var,
-                        'date': dt.isoformat(), 
-                        'ref': ref
-                    }
-                    for var,dt,ref in variables_date_datasets_refs
+                    dict(
+                        variable = vddr['variable'],
+                        date = vddr['date'].isoformat(), 
+                        ref = vddr['ref']['uri'] if bucket_destination else vddr['ref']['filepath']
+                    )
+                    for vddr in variables_date_datasets_refs
+                ] + [
+                    dict(
+                        variable = dvddr['variable'],
+                        date = dvddr['date'].isoformat(), 
+                        ref = dvddr['ref']['uri'] if bucket_destination else dvddr['ref']['filepath']
+                    )
+                    for dvddr in derived_variables_date_datasets_refs
                 ]
             }
 
             return outputs
 
         except Exception as e:
-            raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {str(e)}')
+            raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {traceback.format_exc() if debug else e}')
         
         finally:
             filesystem.garbage_folders(self._tmp_data_folder)

@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 
 _DATASET_NAME = 'ICON_2I_SURFACE_PRESSURE_LEVELS'
 
@@ -28,7 +29,52 @@ _VARIABLE_CODE = lambda variable: variable.replace(' ', '_').lower()
 _VARIABLES_DICT =  { _VARIABLE_CODE(variable): _VARIABLES.__dict__[variable] for variable in _VARIABLES_LIST }
 
 _DATA_CUBE_PROCESSING = {
+    _VARIABLE_CODE("TOTAL_PRECIPITATION"): lambda data_cube: np.concatenate(([data_cube[0]], np.diff(data_cube, axis=0)), axis=0)
+}
 
-    _VARIABLE_CODE(_VARIABLES.TOTAL_PRECIPITATION): lambda data_cube: np.concatenate(([data_cube[0]], np.diff(data_cube, axis=0)), axis=0)
+class _DERIVED_VARIABLES:
+    """
+    Class to hold some variables that can be computed from _VARIABLES
+    """
+    WIND_SPEED = list(map(_VARIABLE_CODE, ["U_WIND_COMPONENT", "V_WIND_COMPONENT"]))
+    WIND_DIRECTION = list(map(_VARIABLE_CODE, ["U_WIND_COMPONENT", "V_WIND_COMPONENT"]))
 
+_DERIVED_VARIABLES_LIST = [attr for attr in dir(_DERIVED_VARIABLES) if not attr.startswith('_')]
+_DERIVED_VARIABLES_DICT =  { _VARIABLE_CODE(variable): _DERIVED_VARIABLES.__dict__[variable] for variable in _DERIVED_VARIABLES_LIST }
+
+def compute_wind_speed(wind_u, wind_v):
+    ds_wu = xr.open_dataset(wind_u)
+    ds_wv = xr.open_dataset(wind_v)
+    ds_wind_speed = xr.Dataset(
+        data_vars=dict(
+            wind_speed = (["time", "lat", "lon"], np.sqrt(ds_wu.u_wind_component.data**2 + ds_wv.v_wind_component.data**2))
+        ),
+        coords = dict(
+            time = ds_wu.time,
+            lat = ds_wu.lat,
+            lon = ds_wu.lon,
+        )
+    )
+    return ds_wind_speed
+
+def compute_wind_direction(wind_u, wind_v):
+    ds_wu = xr.open_dataset(wind_u)
+    ds_wv = xr.open_dataset(wind_v)
+    ds_wind_direction = xr.Dataset(
+        data_vars=dict(
+            wind_direction = (["time", "lat", "lon"], np.arctan2(ds_wv.v_wind_component.data, ds_wu.u_wind_component.data) * (180 / np.pi))
+        ),
+        coords = dict(
+            time = ds_wu.time,
+            lat = ds_wu.lat,
+            lon = ds_wu.lon,
+        )
+    )
+    return ds_wind_direction
+
+#ds['wind_direction'] = np.arctan2(ds.wind_v, ds.wind_u) * (180 / np.pi)
+
+_DERIVED_VARIABLES_COMPUTE = {
+    _VARIABLE_CODE("WIND_SPEED"): compute_wind_speed,
+    _VARIABLE_CODE("WIND_DIRECTION"): compute_wind_direction,
 }
