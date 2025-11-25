@@ -36,8 +36,8 @@ class _DERIVED_VARIABLES:
     """
     Class to hold some variables that can be computed from _VARIABLES
     """
-    WIND_SPEED = list(map(_VARIABLE_CODE, [_VARIABLES.U_WIND_COMPONENT, _VARIABLES.V_WIND_COMPONENT]))
-    WIND_DIRECTION = list(map(_VARIABLE_CODE, [_VARIABLES.U_WIND_COMPONENT, _VARIABLES.V_WIND_COMPONENT]))
+    WIND_SPEED = list(map(_VARIABLE_CODE, ["U_WIND_COMPONENT", "V_WIND_COMPONENT"]))
+    WIND_DIRECTION = list(map(_VARIABLE_CODE, ["U_WIND_COMPONENT", "V_WIND_COMPONENT"]))
 
 _DERIVED_VARIABLES_LIST = [attr for attr in dir(_DERIVED_VARIABLES) if not attr.startswith('_')]
 _DERIVED_VARIABLES_DICT =  { _VARIABLE_CODE(variable): _DERIVED_VARIABLES.__dict__[variable] for variable in _DERIVED_VARIABLES_LIST }
