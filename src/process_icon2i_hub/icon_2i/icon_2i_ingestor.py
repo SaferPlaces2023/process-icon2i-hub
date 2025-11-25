@@ -307,7 +307,7 @@ class _ICON2IIngestor():
                         date = vddr['date'].isoformat(), 
                         ref = vddr['ref']['uri'] if bucket_destination else vddr['ref']['filepath']
                     )
-                    for vddr in variables_date_datasets_refs.items()
+                    for vddr in variables_date_datasets_refs
                 ] + [
                     dict(
                         variable = dvddr['variable'],
