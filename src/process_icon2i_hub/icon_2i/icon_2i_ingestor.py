@@ -294,7 +294,7 @@ class _ICON2IIngestor():
                     df_var.set_index('variable', inplace=True)
                     og_dss = [df_var.loc[ogv].ref['filepath'] for ogv in og_vars]
                     dds = _consts._DERIVED_VARIABLES_COMPUTE[dvar](*og_dss)
-                    derived_date_datasets.append(dt, dds)
+                    derived_date_datasets.append((dt, dds))
                 derived_variable_date_datasets_refs = self.save_date_datasets(derived_date_datasets, dvar, out_dir, bucket_destination)
                 derived_variables_date_datasets_refs.extend(derived_variable_date_datasets_refs)
 
