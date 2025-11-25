@@ -52,10 +52,15 @@ class _ICON2IRetriever():
         out = kwargs.get('out', None)
 
         if variable is None:
-            raise StatusException(StatusException.INVALID, 'variable is required')
-        if type(variable) is not str:
-            raise StatusException(StatusException.INVALID, 'variable must be a string')
-        if variable not in _consts._VARIABLES_DICT:
+            variable = list(_consts._VARIABLES_DICT.keys())
+            Logger.debug(f'No variable specified, collect all variables: {variable}')
+        if not isinstance(variable, (str, list)):
+            raise StatusException(StatusException.INVALID, 'variable must be a string or a list of strings')
+        if isinstance(variable, str):
+            variable = [variable]
+        if not all(isinstance(v, str) for v in variable):
+            raise StatusException(StatusException.INVALID, 'All variables must be strings')
+        if not all(v in _consts._VARIABLES_DICT for v in variable):
             raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
 
         if lat_range is not None:
@@ -149,7 +154,7 @@ class _ICON2IRetriever():
     
 
     def retrieve_icon2I_data(self, variable, lat_range, lon_range, time_start, time_end, bucket_source):
-        
+
         # DOC: Check if the dataset is available in the source bucket
         def check_date_dataset_avaliability(variable, requested_dates, bucket_source):
             requested_source_uris = [f'{bucket_source}/{_consts._DATASET_NAME}__{variable}__{d}.nc' for d in requested_dates]
@@ -160,66 +165,76 @@ class _ICON2IRetriever():
                 return None
             return avaliable_uris
         
+
         requested_dates = pd.date_range(time_start, time_end, freq='1d').to_series().apply(lambda d: d.date()).to_list()
-        data_source_uris = check_date_dataset_avaliability(variable, requested_dates, bucket_source) if bucket_source is not None else None
-
-        # DOC: If the dataset is not available in the source bucket, run the ingestor to retrieve it
-        if data_source_uris is None:
-            icon2i_ingestor = _ICON2IIngestor()
-            icon2i_ingestor_out = icon2i_ingestor.run(
-                variable = variable,
-                forecast_run = list(map(lambda d: d.isoformat(), requested_dates)),
-                out_dir = self._tmp_data_folder,
-                bucket_destination = bucket_source
-            )
-            if icon2i_ingestor_out.get('status', 'ERROR') != 'OK':
-                raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {icon2i_ingestor_out["message"]}')    
-            data_source_uris = [cdi['ref'] for cdi in icon2i_ingestor_out['collected_data_info']]
-
-        # DOC: Now we have the data source URIs, we can retrieve the data
-        retrived_files = []
-        for dsu in data_source_uris:
-            if dsu.startswith('s3://'):
-                rf = os.path.join(self._tmp_data_folder, os.path.basename(dsu))
-                module_s3.s3_download(dsu, rf)
-                retrived_files.append(rf)
-            else:
-                retrived_files.append(dsu)
-            
-        datasets = [xr.open_dataset(rf) for rf in retrived_files]
-        dataset = xr.concat(datasets, dim='time')
-        dataset = dataset.assign_coords(
-            lat=np.round(dataset.lat.values, 6),
-            lon=np.round(dataset.lon.values, 6),
-        )
-        dataset = dataset.sortby(['time', 'lat', 'lon'])
-
-        # DOC: Filter the dataset by latitude, longitude, and time range
-        def dataset_query(dataset, lat_range, lon_range, time_range):
-            query_dataset = dataset.copy()
-            if isinstance(lat_range, list) and len(lat_range) == 2:
-                query_dataset = query_dataset.sel(lat=slice(lat_range[0], lat_range[1]))
-            elif isinstance(lat_range, (float, int)):
-                query_dataset = query_dataset.sel(lat=lat_range, method="nearest")
-
-            if isinstance(lon_range, list) and len(lon_range) == 2:
-                query_dataset = query_dataset.sel(lon=slice(lon_range[0], lon_range[1]))
-            elif isinstance(lon_range, (float, int)):
-                query_dataset = query_dataset.sel(lon=lon_range, method="nearest")
-
-            if isinstance(time_range, list) and len(time_range) == 2:
-                query_dataset = query_dataset.sel(time=slice(time_range[0], time_range[1]))
-            elif isinstance(time_range, str) or isinstance(time_range, datetime.datetime):
-                query_dataset = query_dataset.sel(time=time_range, method="nearest")
-
-            return query_dataset
-        dataset = dataset_query(dataset, lat_range, lon_range, [time_start, time_end])       
         
-        return dataset
+        variable_datasets = dict()
+        for var in variable:
+           
+            data_source_uris = check_date_dataset_avaliability(var, requested_dates, bucket_source) if bucket_source is not None else None
+
+            # DOC: If the dataset is not available in the source bucket, run the ingestor to retrieve it
+            # DOC: It is convenient to ingest all the requested variables due to high probability that if one is missing then also the others are missing .. so let's do it once
+            if data_source_uris is None:
+                icon2i_ingestor = _ICON2IIngestor()
+                icon2i_ingestor_out = icon2i_ingestor.run(
+                    variable = variable,
+                    forecast_run = list(map(lambda d: d.isoformat(), requested_dates)),
+                    out_dir = self._tmp_data_folder,
+                    bucket_destination = bucket_source
+                )
+                if icon2i_ingestor_out.get('status', 'ERROR') != 'OK':
+                    raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {icon2i_ingestor_out["message"]}')    
+                data_source_uris = [cdi['ref'] for cdi in icon2i_ingestor_out['collected_data_info'] if cdi['variable'] == var]
+
+            # DOC: Now we have the data source URIs, we can retrieve the data
+            retrived_files = []
+            for dsu in data_source_uris:
+                if dsu.startswith('s3://'):
+                    rf = os.path.join(self._tmp_data_folder, os.path.basename(dsu))
+                    module_s3.s3_download(dsu, rf)
+                    retrived_files.append(rf)
+                else:
+                    retrived_files.append(dsu)
+                
+            datasets = [xr.open_dataset(rf) for rf in retrived_files]
+            dataset = xr.concat(datasets, dim='time')
+            dataset = dataset.assign_coords(
+                lat=np.round(dataset.lat.values, 6),
+                lon=np.round(dataset.lon.values, 6),
+            )
+            dataset = dataset.sortby(['time', 'lat', 'lon'])
+
+            # DOC: Filter the dataset by latitude, longitude, and time range
+            def dataset_query(dataset, lat_range, lon_range, time_range):
+                query_dataset = dataset.copy()
+                if isinstance(lat_range, list) and len(lat_range) == 2:
+                    query_dataset = query_dataset.sel(lat=slice(lat_range[0], lat_range[1]))
+                elif isinstance(lat_range, (float, int)):
+                    query_dataset = query_dataset.sel(lat=lat_range, method="nearest")
+
+                if isinstance(lon_range, list) and len(lon_range) == 2:
+                    query_dataset = query_dataset.sel(lon=slice(lon_range[0], lon_range[1]))
+                elif isinstance(lon_range, (float, int)):
+                    query_dataset = query_dataset.sel(lon=lon_range, method="nearest")
+
+                if isinstance(time_range, list) and len(time_range) == 2:
+                    query_dataset = query_dataset.sel(time=slice(time_range[0], time_range[1]))
+                elif isinstance(time_range, str) or isinstance(time_range, datetime.datetime):
+                    query_dataset = query_dataset.sel(time=time_range, method="nearest")
+
+                return query_dataset
+            dataset = dataset_query(dataset, lat_range, lon_range, [time_start, time_end])       
+            
+            variable_datasets[var] = dataset
+
+            # return dataset
+        
+        return variable_datasets
     
 
     def create_timestamp_raster(self, variable, dataset, out):
-        timestamps = [datetime.datetime.fromisoformat(str(ts).replace('.000000000','')) for ts in dataset.time.values]
+        timestamps = [datetime.datetime.fromisoformat(str(ts).replace('.000000000','')).isoformat(timespec='seconds') for ts in dataset.time.values]
         
         if out is None:
             multiband_raster_filename = f'{_consts._DATASET_NAME}/{variable}/{_consts._DATASET_NAME}__{variable}__{timestamps[0]}.tif'
@@ -245,7 +260,7 @@ class _ICON2IRetriever():
             format="COG",
             save_nodata_as=-9999.0,
             metadata={
-                'band_names': [ts.isoformat() for ts in timestamps],
+                'band_names': timestamps,
                 'type': '', # product.measure_type,  # !!!: To be defined
                 'unit': '' # product.measure_unit   # !!!: To be defined
             }
@@ -304,7 +319,7 @@ class _ICON2IRetriever():
             out = validated_args['out']
 
             # DOC: Retrieve the ICON2I data
-            dataset = self.retrieve_icon2I_data(
+            variable_datasets = self.retrieve_icon2I_data(
                 variable=variable,
                 lat_range=lat_range,
                 lon_range=long_range,
@@ -313,37 +328,40 @@ class _ICON2IRetriever():
                 bucket_source=bucket_source
             )
 
-            # DOC: Create timestamp raster
-            timestamp_raster = self.create_timestamp_raster(
-                variable = variable,
-                dataset = dataset,
-                out = out
-            )
+            # DOC: Retrieve the data and create timestamp rasters for each variable
+            variables_timestamp_rasters_refs = dict()
+            for var, dataset in variable_datasets.items():
+                
+                # DOC: Create timestamp raster
+                timestamp_raster = self.create_timestamp_raster(
+                    variable = var,
+                    dataset = dataset,
+                    out = out
+                )
+                variables_timestamp_rasters_refs[var] = timestamp_raster
 
-            # DOC: Store data in bucket if bucket_destination is provided
-            if bucket_destination is not None:
-                bucket_uris = []
-                bucket_uri = f"{bucket_destination}/{filesystem.justfname(timestamp_raster)}"
-                upload_status = module_s3.s3_upload(timestamp_raster, bucket_uri)
-                if not upload_status:
-                    raise StatusException(StatusException.ERROR, f"Failed to upload data to bucket {bucket_destination}")
-                bucket_uris.append(bucket_uri)
-                Logger.debug(f"Data stored in bucket: {bucket_uri}")
+                # DOC: If out is provided, store the data in the specified location
+                if bucket_destination is not None:
+                    bucket_uri = f"{bucket_destination}/{filesystem.justfname(timestamp_raster)}"
+                    upload_status = module_s3.s3_upload(timestamp_raster, bucket_uri)
+                    if not upload_status:
+                        raise StatusException(StatusException.ERROR, f"Failed to upload data to bucket {bucket_destination}")
+                    Logger.debug(f"Data stored in bucket: {bucket_uri}")
+                    variables_timestamp_rasters_refs[var] = bucket_uri
 
 
             # DOC: Prepare outputs
             if bucket_destination is not None or out is not None:
-                outputs = { 'status': 'OK' }
-                if bucket_destination is not None:
-                    outputs = {
-                        ** outputs,
-                        ** ( {'uri': bucket_uris[0]} if len(bucket_uris) == 1 else {'uris': bucket_uris} )
-                    }
-                if out is not None:
-                    outputs = {
-                        ** outputs,
-                        ** {'filepath': timestamp_raster}
-                    }
+                outputs = { 
+                    'status': 'OK',
+                    'collected_data_info': [
+                        {
+                            'variable': var,
+                            'ref': ref,
+                        }
+                        for var, ref in variables_timestamp_rasters_refs.items()
+                    ]
+                }
             else:
                 outputs = timestamp_raster
             

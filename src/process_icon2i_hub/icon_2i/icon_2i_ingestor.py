@@ -71,10 +71,15 @@ class _ICON2IIngestor():
         out_dir = kwargs.get('out_dir', None)
 
         if variable is None:
-            raise StatusException(StatusException.INVALID, 'variable is required')
-        if type(variable) is not str:
-            raise StatusException(StatusException.INVALID, 'variable must be a string')
-        if variable not in _consts._VARIABLES_DICT:
+            variable = list(_consts._VARIABLES_DICT.keys())
+            Logger.debug(f'No variable specified, collect all variables: {variable}')
+        if not isinstance(variable, (str, list)):
+            raise StatusException(StatusException.INVALID, 'variable must be a string or a list of strings')
+        if isinstance(variable, str):
+            variable = [variable]
+        if not all(isinstance(v, str) for v in variable):
+            raise StatusException(StatusException.INVALID, 'All variables must be strings')
+        if not all(v in _consts._VARIABLES_DICT for v in variable):
             raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
         
         if forecast_run is not None:
@@ -164,8 +169,9 @@ class _ICON2IIngestor():
                     data = np.stack([np.where(d.data==9999.0, np.nan, d.data) for d in values])
                     grib_data.append(data)
 
+            # DOC: Stack data and apply data-cube processing if defined for the variable
             np_dataset = np.stack(grib_data)
-            np_dataset = np.concatenate(([np_dataset[0]], np.diff(np_dataset, axis=0)), axis=0) # DOC: og data is cumulative
+            np_dataset = _consts._DATA_CUBE_PROCESSING.get(_consts._VARIABLE_CODE(variable), lambda x: x)(np_dataset)
             ds = xr.Dataset(
                 {
                     variable: (["time", "lat", "lon"], np_dataset.astype(np.float32))
@@ -199,9 +205,9 @@ class _ICON2IIngestor():
             if bucket_destination:
                 uri = os.path.join(bucket_destination, fn)
                 module_s3.s3_upload(fp, uri)
-                date_dataset_refs.append((dt, uri))
+                date_dataset_refs.append((variable, dt, uri))
             else:
-                date_dataset_refs.append((dt, fp))
+                date_dataset_refs.append((variable, dt, fp))
         return date_dataset_refs
 
 
@@ -249,27 +255,34 @@ class _ICON2IIngestor():
             # DOC: Get the available forecast runs
             icon2I_file_paths = self.download_icon2I_data(forecast_run)
 
-            # DOC: Open gribs
-            gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
+            # DOC: Extract each variable from the gribs
+            variables_date_datasets_refs = []
+            for var in variable:
+                # DOC: Open gribs
+                gribs = [pygrib.open(gf) for gf in icon2I_file_paths]
 
-            # DOC: Concatenate the gribs into a single xarray dataset
-            timeserie_dataset = self.icon_2I_time_concat(gribs, variable)
+                # DOC: Concatenate the gribs into a single xarray dataset
+                timeserie_dataset = self.icon_2I_time_concat(gribs, var)
 
-            # DOC: Split the dataset into individual date datasets
-            date_datasets = self.get_single_date_dataset(timeserie_dataset)
+                # DOC: Split the dataset into individual date datasets
+                date_datasets = self.get_single_date_dataset(timeserie_dataset)
 
-            # DOC: Save the date datasets to the output directory and upload to S3 if specified
-            date_datasets_refs = self.save_date_datasets(date_datasets,variable,  out_dir, bucket_destination)
+                # DOC: Save the date datasets to the output directory and upload to S3 if specified
+                variable_date_datasets_refs = self.save_date_datasets(date_datasets, var, out_dir, bucket_destination)
+
+                # DOC: Collect all variables+date datasets references
+                variables_date_datasets_refs.extend(variable_date_datasets_refs)
 
             # DOC: Prepare the output
             outputs = {
                 'status': 'OK',
                 'collected_data_info': [
                     {
+                        'variable': var,
                         'date': dt.isoformat(), 
                         'ref': ref
                     }
-                    for dt,ref in date_datasets_refs
+                    for var,dt,ref in variables_date_datasets_refs
                 ]
             }
 
