@@ -290,7 +290,7 @@ class _ICON2IIngestor():
             for dvar in derived_variable:
                 derived_date_datasets = []
                 og_vars = _consts._DERIVED_VARIABLES_DICT[dvar]
-                for dt,df_var in df_vars.groups:
+                for dt,df_var in df_vars.groups.items():
                     df_var.set_index('variable', inplace=True)
                     og_dss = [df_var.loc[ogv].ref['filepath'] for ogv in og_vars]
                     dds = _consts._DERIVED_VARIABLES_COMPUTE[dvar](*og_dss)
