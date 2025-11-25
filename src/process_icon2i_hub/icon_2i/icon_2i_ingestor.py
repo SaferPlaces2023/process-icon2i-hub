@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import traceback
 import datetime
 import urllib3
 import requests
@@ -245,6 +246,8 @@ class _ICON2IIngestor():
         :param bucket_destination: S3 bucket destination for the output file.
         """
 
+        debug = kwargs.get('debug', False)
+
         try:
 
             # DOC: Validate the arguments
@@ -318,7 +321,7 @@ class _ICON2IIngestor():
             return outputs
 
         except Exception as e:
-            raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {str(e)}')
+            raise StatusException(StatusException.ERROR, f'Error during ICON2I ingestor run: {traceback.format_exc() if debug else e}')
         
         finally:
             filesystem.garbage_folders(self._tmp_data_folder)
