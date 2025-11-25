@@ -213,7 +213,7 @@ class _ICON2IIngestor():
             )
             if bucket_destination:
                 uri = os.path.join(bucket_destination, fn)
-                module_s3.s3_upload(fp, uri, remove_src=True)
+                module_s3.s3_upload(fp, uri, remove_src=False)
                 date_dataset_ref['ref']['uri'] = uri
             date_dataset_refs.append(date_dataset_ref)
         return date_dataset_refs
