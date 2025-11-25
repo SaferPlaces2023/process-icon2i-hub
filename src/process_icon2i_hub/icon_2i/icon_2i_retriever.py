@@ -60,9 +60,11 @@ class _ICON2IRetriever():
             variable = [variable]
         if not all(isinstance(v, str) for v in variable):
             raise StatusException(StatusException.INVALID, 'All variables must be strings')
-        if not all(v in _consts._VARIABLES_DICT for v in variable):
+        if not all(v in _consts._VARIABLES_DICT or v in _consts._DERIVED_VARIABLES_DICT for v in variable):
             raise StatusException(StatusException.INVALID, f'Invalid variable "{variable}". Must be one of {_consts._VARIABLES_DICT.keys()}')
-
+        derived_variable = list(set([dv for dv in variable if dv in _consts._DERIVED_VARIABLES_DICT]))
+        variable = list(set([v for v in variable if v not in derived_variable] + [v for dv in derived_variable for v in _consts._DERIVED_VARIABLES_DICT[dv]]))
+        
         if lat_range is not None:
             if type(lat_range) is not list or len(lat_range) != 2:
                 raise StatusException(StatusException.INVALID, 'lat_range must be a list of 2 elements')
@@ -141,7 +143,7 @@ class _ICON2IRetriever():
                 os.makedirs(dirname)
 
         return {
-            'variable': variable,
+            'variable': variable + derived_variable,
             'lat_range': lat_range,
             'long_range': long_range,
             'time_start': time_start,
