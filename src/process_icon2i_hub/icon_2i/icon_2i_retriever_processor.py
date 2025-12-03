@@ -163,16 +163,12 @@ class ICON2IRetrieverProcessor(BaseProcessor):
     """
 
     name = 'ICON2IRetrieverProcessor'
-    _tmp_data_folder = os.path.join(os.getcwd(), 'ICON2IRetrieverProcessor')
 
     def __init__(self, processor_def):
         """
         Initialize the ICON2I Retriever Process.
         """
         super().__init__(processor_def, PROCESS_METADATA)
-
-        if not os.path.exists(self._tmp_data_folder):
-            os.makedirs(self._tmp_data_folder, exist_ok=True)
 
 
     def argument_validation(self, data):
@@ -191,10 +187,6 @@ class ICON2IRetrieverProcessor(BaseProcessor):
         if debug:
             set_log_debug()
 
-        self._tmp_data_folder = _ICON2IRetriever._tmp_data_folder
-        if not os.path.exists(self._tmp_data_folder):
-            os.makedirs(self._tmp_data_folder)
-
     
     def execute(self, data):
 
@@ -202,13 +194,15 @@ class ICON2IRetrieverProcessor(BaseProcessor):
 
         outputs = {}
 
+        # DOC: Processor can be called in async mode, so we need to set up a temporary data folder different for each call → avoid one call to delete the data of another call
+        ICON2IRetriever = _ICON2IRetriever()
+        ICON2IRetriever._set_tmp_data_folder(os.path.join(ICON2IRetriever._tmp_data_folder, str(uuid.uuid4())))
+
         try:
             
             # DOC: Args validation
             self.argument_validation(data)
             Logger.debug(f'Validated process parameters')
-
-            ICON2IRetriever = _ICON2IRetriever()
 
             # DOC: Set up the ARPAV Retriever
             outputs = ICON2IRetriever.run(**data)
@@ -225,8 +219,9 @@ class ICON2IRetrieverProcessor(BaseProcessor):
             }
             raise ProcessorExecuteError(str(err))
         
-        filesystem.garbage_folders(self._tmp_data_folder)
-        Logger.debug(f'Cleaned up temporary data folder: {self._tmp_data_folder}')
+        finally:
+            filesystem.rmdir(ICON2IRetriever._tmp_data_folder)
+            Logger.debug(f'Removed temporary data folder: {ICON2IRetriever._tmp_data_folder}')
         
         return mimetype, outputs
 

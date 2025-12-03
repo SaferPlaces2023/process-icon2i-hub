@@ -37,6 +37,16 @@ class _ICON2IIngestor():
             os.makedirs(self._tmp_data_folder)
 
 
+    def _set_tmp_data_folder(self, tmp_data_folder):
+        """
+        Set the temporary data folder.
+        """
+        if not os.path.exists(tmp_data_folder):
+            os.makedirs(tmp_data_folder, exist_ok=True)
+        self._tmp_data_folder = tmp_data_folder
+        Logger.debug(f'Set temporary data folder to: {self._tmp_data_folder}')
+        
+
     def get_avaliable_forecast_runs(self):
         
         def parse_avaliable_data(avaliable_data_response):

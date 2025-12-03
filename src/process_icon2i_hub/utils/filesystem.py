@@ -239,3 +239,14 @@ def garbage_folders(*folders):
                     shutil.rmtree(content, ignore_errors=True)
                 except Exception as e:
                     print(f"Error removing directory {content}: {e}")
+
+def rmdir(pathname):
+    """
+    rmdir - remove a folder
+    """
+    if os.path.isdir(pathname):
+        try:
+            shutil.rmtree(pathname, ignore_errors=True)
+        except Exception as e:
+            print(f"Error removing directory {pathname}: {e}")
+    return not os.path.exists(pathname)
