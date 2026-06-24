@@ -129,7 +129,6 @@ dmypy.json
 .pyre/
 
 # Test folder
-tests/*
 !tests/unit-tests/
 !tests/unit-tests/*.py
 /**/*.geojson
