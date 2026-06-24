@@ -3,9 +3,9 @@
 #FROM ghcr.io/osgeo/gdal:ubuntu-small-3.7.0
 FROM 901702069075.dkr.ecr.us-east-1.amazonaws.com/docker-gdal
 
-COPY src /var/tmp/template_cli/src
-COPY setup.py /var/tmp/template_cli/
-WORKDIR /var/tmp/template_cli 
+COPY src /var/tmp/process_icon2i_hub/src
+COPY pyproject.toml /var/tmp/process_icon2i_hub/
+WORKDIR /var/tmp/process_icon2i_hub 
 RUN pip install .
 ADD tests /var/task/tests
 
@@ -14,7 +14,7 @@ RUN pip cache purge
 RUN apt-get remove -y git && \
     apt-get autoremove -y && \
     apt-get clean
-RUN rm -rf /var/tmp/template_cli/
+RUN rm -rf /var/tmp/process_icon2i_hub/
 
 # AWS Lambda
 # copy the entrypoint script to use it like awslinux2
@@ -24,6 +24,14 @@ RUN chmod +x /lambda-entrypoint.sh
 
 COPY ./lambda/* /var/task/
 WORKDIR /var/task
+
+# Dual-mode processor configuration
+# ICON2I_PROCESSOR_MODE: "local" (default) or "lambda"
+# - "local": Run logic locally in the processor (backward compatible, writes to cwd)
+# - "lambda": Invoke Lambda function for processing (writes only to /tmp)
+ENV ICON2I_PROCESSOR_MODE=lambda
+ENV AWS_REGION=us-east-1
+
 # These following lines are for the AWS Lambda and shoulbe setted on the AWS Lambda function ons aws web console
 # or using aws lambda update-function-configuration --function-name <function-name> --handler <handler-name>
 # ENTRYPOINT [ "/opt/venv/bin/python", "-m", "awslambdaric" ] for Ubuntu

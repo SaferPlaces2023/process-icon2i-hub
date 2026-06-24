@@ -1,29 +1,51 @@
 from process_icon2i_hub import parse_event
-from process_icon2i_hub import main_python as main_function
+from process_icon2i_hub import run_icon2i_ingestor, run_icon2i_retriever
 
 
-def lambda_handler(event, context):
+def ingestor_handler(event, context):
     """
-    lambda_handler - lambda function
+    ingestor_handler - lambda function for the ICON-2I ingestor
     """
-    kwargs = parse_event(event, main_function)
+    kwargs = parse_event(event, run_icon2i_ingestor)
 
-    res = main_function(**kwargs)
+    res = run_icon2i_ingestor(**kwargs)
 
     return {
-        "statusCode": 200, 
+        "statusCode": 200,
         "body": {
-            "result": res   
+            "result": res
+        }
+    }
+
+
+def retriever_handler(event, context):
+    """
+    retriever_handler - lambda function for the ICON-2I retriever
+    """
+    kwargs = parse_event(event, run_icon2i_retriever)
+
+    res = run_icon2i_retriever(**kwargs)
+
+    return {
+        "statusCode": 200,
+        "body": {
+            "result": res
         }
     }
 
 
 if __name__ == "__main__":
-    event = {
-        "dem": "s3://saferplaces.co/packages/safer_rain/CLSA_LiDAR/CLSA_LiDAR.tif",
-        "debug": "false"
+    ingestor_event = {
+        "variable": "total_precipitation",
+        "debug": "true"
     }
+    print(ingestor_handler(ingestor_event, None))
 
-    kwargs = parse_event(event, main_function)
-    res = main_function(**kwargs)
-    print(res)
+    retriever_event = {
+        "lat_range": [43.92, 44.77],
+        "long_range": [12.20, 12.83],
+        "time_range": ["2025-01-21T08:00:00", "2025-01-22T23:00:00"],
+        "variable": "total_precipitation",
+        "debug": "true"
+    }
+    print(retriever_handler(retriever_event, None))

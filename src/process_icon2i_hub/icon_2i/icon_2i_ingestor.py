@@ -28,8 +28,9 @@ class _ICON2IIngestor():
     name = f'{_consts._DATASET_NAME}__Ingestor'
 
     # REF: https://meteohub.agenziaitaliameteo.it/api/datasets/ICON_2I_SURFACE_PRESSURE_LEVELS/opendata
-    
-    _tmp_data_folder = os.path.join(os.getcwd(), name)
+
+    # DOC: in lambda mode only /tmp is writable, so use a tempdir; otherwise use the current working directory
+    _tmp_data_folder = filesystem.tempdir(name) if os.getenv('ICON2I_PROCESSOR_MODE') == "lambda" else os.path.join(os.getcwd(), name)
 
     def __init__(self):
         
