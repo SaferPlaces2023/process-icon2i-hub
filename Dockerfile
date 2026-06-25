@@ -6,7 +6,8 @@ FROM 901702069075.dkr.ecr.us-east-1.amazonaws.com/docker-gdal
 COPY src /var/tmp/process_icon2i_hub/src
 COPY pyproject.toml /var/tmp/process_icon2i_hub/
 WORKDIR /var/tmp/process_icon2i_hub 
-RUN pip install .
+RUN pip install . && \
+    pip install gdal2numpy
 ADD tests /var/task/tests
 
 #Clean up
